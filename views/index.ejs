@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link rel="stylesheet" href="../styles/main.css" />
+  </head>
+
+  <body>
+    <h1 id="mainHeading">Books</h1>
+
+    <!--Adding new books-->
+    <form action="/addBook" method="post">
+      <input
+        type="text"
+        name="bookname"
+        placeholder="Enter the name of the book"
+      /><br />
+      <button type="submit">Add</button>
+    </form>
+
+    <!--Displaying all the added books-->
+    <div class="books">
+      <% for(let book of books){ %>
+      <p class="bookNames"><%= book.name %></p>
+      <% } %>
+    </div>
+  </body>
+</html>
