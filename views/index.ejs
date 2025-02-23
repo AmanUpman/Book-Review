@@ -19,12 +19,13 @@
       /><br />
       <button type="submit">Add</button>
     </form>
-
+ 
     <!--Displaying all the added books-->
     <div class="books">
       <% for(let book of books){ %>
-      <p class="bookNames"><%= book.name %></p>
+      <img class ="bookNames" src="<%= book.coverUrl %>" alt="<%= book.name %>">
       <% } %>
     </div>
   </body>
 </html>
+     
