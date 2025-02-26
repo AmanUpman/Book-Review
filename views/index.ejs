@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
-    <link rel="stylesheet" href="../styles/main.css" />
+    <link rel="stylesheet" href="/styles/main.css" />
   </head>
 
   <body>
@@ -15,17 +15,51 @@
       <input
         type="text"
         name="bookname"
-        placeholder="Enter the name of the book"
+        placeholder="<%= message %>"
       /><br />
       <button type="submit">Add</button>
     </form>
- 
+
     <!--Displaying all the added books-->
     <div class="books">
-      <% for(let book of books){ %>
-      <img class ="bookNames" src="<%= book.coverUrl %>" alt="<%= book.name %>">
+      <% for(let book of books) { %>
+      <img
+        class="bookNames"
+        src="<%= book.coverUrl %>"
+        alt="<%= book.name %>"
+      />
+      <!-- <p class="onlyTitle"><%= book.name %></p> -->
+
+      <!--Editing a book name-->
+      <form action="/editBook" method="post">
+        <input type="hidden" name="updatedBookId" value="<%= book.id %>" />
+        <input
+          id="input<%= book.id %>"
+          type="text"
+          name="updatedTitle"
+          value="<%= book.name %>"
+          autocomplete="off"
+          autofocus="true"
+          hidden="true"
+        />
+        <button
+          id="done<%= book.id %>"
+          class="edit"
+          type="submit"
+          hidden="true"
+        >
+          Edit
+        </button>
+        <button
+          id="edit<%= book.id %>"
+          class="edit"
+          onclick="handler('<%= book.id %>')"
+        >
+          Edit
+        </button>
+      </form>
       <% } %>
     </div>
   </body>
 </html>
-     
+

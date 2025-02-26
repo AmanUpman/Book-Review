@@ -48,34 +48,43 @@ let booksdetails = [
 //Getting the data of books and also fetchin the covers from the API
 async function getBooks() {
   try {
-    const result = await db.query(
-      "SELECT * FROM readbooks order by readbooks.id asc"
-    );
+    const result = await db.query("SELECT * FROM readbooks ORDER BY id ASC");
     readbooks = result.rows;
 
     for (let book of readbooks) {
-      const response = await axios.get(
-        `https://openlibrary.org/search.json?title=${encodeURIComponent(
-          book.name
-        )}`
-      );
+      if (book.name) {
+        const response = await axios.get(
+          `https://openlibrary.org/search.json?title=${encodeURIComponent(
+            book.name
+          )}`
+        );
 
-      if (response.data.docs && response.data.docs.length > 0) {
-        let coverId = response.data.docs[0].cover_i;
-        if(response.data.docs[1].cover_i){
-          coverId = response.data.docs[1].cover_i;
-        } 
-        
-        if (coverId) {
-          book.coverUrl = `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`;
+        if (response.data.docs && response.data.docs.length > 0) {
+          let coverId = response.data.docs[0].cover_i || null;
+
+          if (response.data.docs.length > 1 && response.data.docs[1].cover_i) {
+            coverId = response.data.docs[1].cover_i;
+          }
+
+          if (coverId) {
+            book.coverUrl = `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`;
+          } else {
+            book.coverUrl = "https://via.placeholder.com/150";
+          }
+          await db.query("UPDATE readbooks SET cover_url = $1 WHERE id = $2", [
+            book.coverUrl,
+            book.id,
+          ]);
         } else {
           book.coverUrl = "https://via.placeholder.com/150";
         }
+      } else {
+        book.coverUrl = "https://via.placeholder.com/150";
       }
     }
     return readbooks;
   } catch (err) {
-    console.log("Not able to fetch the books", err);
+    console.error("Not able to fetch the books :", err);
     return [];
   }
 }
@@ -83,16 +92,67 @@ async function getBooks() {
 //Default landing page
 app.get("/", async (req, res) => {
   let books = await getBooks();
-  res.render("index.ejs", { books: books });
+  res.render("index.ejs", { books: books, message: "Enter the book name" });
 });
 
 //Adding a new book
 app.post("/addbook", async (req, res) => {
-  let bookname = req.body.bookname;
-  await db.query("INSERT INTO readbooks (name) VALUES ($1)", [bookname]);
+  let bookname = req.body.bookname?.trim();
+  let books = await getBooks();
 
-  res.redirect("/");
+  try {
+    const result = await db.query("SELECT * FROM readbooks WHERE name = $1", [
+      bookname,
+    ]);
+
+    if (!bookname) {
+      console.log("Error: Book name cannot be empty.");
+      return res.render("index.ejs", {
+        books: books,
+        message: "Book name cannot be empty",
+      });
+    }
+
+    if (result.rows.length > 0) {
+      console.log("Error: Book name is already present.");
+      return res.render("index.ejs", {
+        books: books,
+        message: "Book Already Present",
+      });
+    }
+
+    await db.query("INSERT INTO readbooks (name) VALUES ($1)", [bookname]);
+    res.redirect("/");
+  } catch (err) {
+    console.error("There was an error while adding a new book", err);
+    res.redirect("/");
+  }
 });
+
+//Editing an book name
+app.post("/editBook", async (req, res) => {
+  try {
+    const newName = req.body.updatedTitle?.trim();
+    const userId = req.body.updatedBookId;
+    if (!newName || !userId) {
+      console.log("Error: Book name or ID is missing.");
+      return res.redirect("/");
+    }
+    await db.query("UPDATE readbooks SET name = $1 WHERE id = $2", [
+      newName,
+      userId,
+    ]);
+    res.redirect("/");
+  } catch (err) {
+    console.error("There was an error while editing a book", err);
+    res.redirect("/");
+  }
+});
+
+// //Deleting a book
+// app.post("/deleteBook", async (req, res) => {
+//   let response = await db.query("DELETE FROM TA");
+// });
 
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on the port : ${process.env.PORT}`);
@@ -104,3 +164,5 @@ app.listen(process.env.PORT || 3000, () => {
 //2. Another thing I learned from the above problem is that whenevr we try to  fetch a name to use for another link and we didnt encode it then it would cause some issues.
 
 //3. I also has a silly  dought of why are we are able to just assign book.coverUrl without first defining coverUrl itself, but after revising javascript a bit I got the following ans : [In JavaScript, particularly when working with objects, you can dynamically add properties to an object at any time. This means that you don't need to explicitly define a property like coverUrl in the object before you assign a value to it]
+
+//4. I got stuck on the edge where there was a error and we created a entry in the table readbooks where there was no name, causing issues for us. Same goes for the case where there is another book with the same name.
